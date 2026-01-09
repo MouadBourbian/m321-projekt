@@ -1,0 +1,12 @@
+graph TB
+    OS[Order Service]
+    PS[Payment Service]
+    KS[Kitchen Service]
+    DS[Delivery & Notification Service]
+    MB[(Message Broker)]
+
+    OS -->|REST synchron<br/>POST /pay| PS
+    OS -->|Async via Queue<br/>order.placed| MB
+    MB -->|Konsumiert<br/>order.placed| KS
+    KS -->|Publiziert<br/>order.ready| MB
+    MB -->|Konsumiert<br/>order.ready| DS
