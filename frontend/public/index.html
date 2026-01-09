@@ -360,8 +360,12 @@
     </div>
 
     <script>
+        // Service URLs - for production, these should be configurable via environment variables
         const ORDER_SERVICE_URL = 'http://localhost:8080';
         const DELIVERY_SERVICE_URL = 'http://localhost:8083';
+        
+        // Refresh interval in milliseconds
+        const REFRESH_INTERVAL = 3000;
         
         let orders = [];
         let deliveries = {};
@@ -491,7 +495,7 @@
         }
 
         // Auto-refresh deliveries
-        setInterval(fetchDeliveries, 3000);
+        setInterval(fetchDeliveries, REFRESH_INTERVAL);
         
         // Initial fetch
         fetchDeliveries();
