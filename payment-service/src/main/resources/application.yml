@@ -1,0 +1,17 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: payment-service
+
+payment:
+  failure:
+    rate: 0.2  # 20% failure rate for testing resilience
+  delay:
+    min: 100   # minimum delay in ms
+    max: 500   # maximum delay in ms
+
+logging:
+  level:
+    com.pizza.payment: INFO

@@ -1,0 +1,27 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: kitchen-service
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    listener:
+      simple:
+        # Support for competing consumers
+        concurrency: 1
+        max-concurrency: 3
+
+kitchen:
+  preparation:
+    time:
+      min: 5000   # 5 seconds minimum
+      max: 10000  # 10 seconds maximum
+
+logging:
+  level:
+    com.pizza.kitchen: INFO
+    org.springframework.amqp: DEBUG
