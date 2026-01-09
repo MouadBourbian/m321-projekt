@@ -31,11 +31,13 @@ public class KitchenService {
     public KitchenService(RabbitTemplate rabbitTemplate) {
         this.rabbitTemplate = rabbitTemplate;
         // Generate unique instance ID to demonstrate competing consumers
+        String id;
         try {
-            this.instanceId = InetAddress.getLocalHost().getHostName();
+            id = InetAddress.getLocalHost().getHostName();
         } catch (Exception e) {
-            this.instanceId = "kitchen-" + random.nextInt(1000);
+            id = "kitchen-" + random.nextInt(1000);
         }
+        this.instanceId = id;
     }
 
     @RabbitListener(queues = RabbitMQConfig.ORDER_PLACED_QUEUE)
