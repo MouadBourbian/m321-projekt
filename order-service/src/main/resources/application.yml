@@ -1,0 +1,20 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: order-service
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+payment:
+  service:
+    url: http://localhost:8081
+
+logging:
+  level:
+    com.pizza.order: INFO
+    org.springframework.amqp: DEBUG
