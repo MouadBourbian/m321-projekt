@@ -105,17 +105,50 @@ Dieses Projekt implementiert eine verteilte Plattform für einen Pizza-Lieferdie
 
 **Technologie:** Java 21, Spring Boot, Spring AMQP
 
+### 5. Frontend (Port 3000)
+**Rolle:** Web-Benutzeroberfläche für Live-Visualisierung
+
+**Verantwortlichkeiten:**
+- Benutzerfreundliches Interface für Bestellungen
+- Echtzeit-Anzeige von Bestellstatus
+- Übersicht über aktive Lieferungen
+- Live-Statistiken Dashboard
+
+**Endpoints:**
+- `GET /` - Web Interface
+- `GET /health` - Health Check
+
+**Technologie:** Node.js 18, Express.js, Vanilla JavaScript
+
 ## Voraussetzungen
 
 - **Java 21** (JDK)
 - **Maven 3.8+**
+- **Node.js 18+** (für Frontend)
 - **Docker & Docker Compose**
 
 ## Installation und Start
 
 ### Option 1: Mit Docker Compose (empfohlen)
 
-1. **Services bauen:**
+Der einfachste Weg ist die Nutzung von Docker Compose, welches alle Services inklusive Frontend automatisch baut und startet.
+
+1. **Alle Services auf einmal starten:**
+```bash
+docker compose up --build
+```
+
+2. **Frontend aufrufen:**
+Öffnen Sie http://localhost:3000 im Browser
+
+3. **Mehrere Kitchen Service Instanzen starten (für Skalierungstests):**
+```bash
+docker compose up --build --scale kitchen-service=3
+```
+
+### Option 2: Services einzeln bauen (für Entwicklung)
+
+1. **Backend Services bauen:**
 ```bash
 # In jedem Service-Verzeichnis
 cd order-service
@@ -129,17 +162,19 @@ mvn clean package
 cd ..
 ```
 
-2. **Docker Compose starten:**
+2. **Frontend bauen:**
 ```bash
-docker-compose up --build
+cd frontend
+npm install
+cd ..
 ```
 
-3. **Mehrere Kitchen Service Instanzen starten (für Skalierungstests):**
+3. **Docker Compose starten:**
 ```bash
-docker-compose up --build --scale kitchen-service=3
+docker compose up --build
 ```
 
-### Option 2: Lokal ohne Docker
+### Option 3: Lokal ohne Docker
 
 1. **RabbitMQ lokal starten:**
 ```bash
@@ -171,6 +206,23 @@ Terminal 4:
 cd delivery-service
 mvn spring-boot:run
 ```
+
+Terminal 5 (Frontend):
+```bash
+cd frontend
+npm start
+```
+
+## Zugriff auf die Dienste
+
+Nach dem Start sind folgende Dienste verfügbar:
+
+- **Frontend:** http://localhost:3000 - Web-Interface für Bestellungen
+- **Order Service:** http://localhost:8080 - REST API
+- **Payment Service:** http://localhost:8081 - REST API
+- **Kitchen Service:** http://localhost:8082 - Asynchron via RabbitMQ
+- **Delivery Service:** http://localhost:8083 - REST API
+- **RabbitMQ Management:** http://localhost:15672 - Admin UI (guest/guest)
 
 ## API Contracts
 
@@ -249,7 +301,29 @@ mvn spring-boot:run
 
 ## Testing Szenarien
 
-### 1. Erfolgreiche Bestellung
+### 0. Mit dem Frontend (empfohlen)
+
+Der einfachste Weg, das System zu testen, ist über das Web-Frontend:
+
+1. **System starten:**
+```bash
+docker compose up --build
+```
+
+2. **Frontend öffnen:**
+Öffnen Sie http://localhost:3000 im Browser
+
+3. **Bestellung aufgeben:**
+- Füllen Sie das Formular aus (Kundenname, Pizza-Typ, Menge, Adresse)
+- Klicken Sie auf "Place Order"
+- Beobachten Sie die Bestellung in der "Recent Orders" Liste
+- Nach einigen Sekunden erscheint die Lieferung in "Active Deliveries"
+
+4. **Live-Updates beobachten:**
+- Das Dashboard aktualisiert sich automatisch alle 3 Sekunden
+- Statistiken zeigen die Anzahl der Bestellungen und Lieferungen
+
+### 1. Erfolgreiche Bestellung (via API)
 ```bash
 curl -X POST http://localhost:8080/orders \
   -H "Content-Type: application/json" \
@@ -264,7 +338,7 @@ curl -X POST http://localhost:8080/orders \
 ### 2. Resilience Test: Payment Service offline
 ```bash
 # Payment Service stoppen
-docker-compose stop payment-service
+docker compose stop payment-service
 
 # Bestellung versuchen - sollte freundliche Fehlermeldung liefern
 curl -X POST http://localhost:8080/orders \
@@ -277,13 +351,13 @@ curl -X POST http://localhost:8080/orders \
   }'
 
 # Payment Service wieder starten
-docker-compose start payment-service
+docker compose start payment-service
 ```
 
 ### 3. Pufferung Test: Kitchen Service offline
 ```bash
 # Kitchen Service stoppen
-docker-compose stop kitchen-service
+docker compose stop kitchen-service
 
 # 5 Bestellungen absenden (alle sollten akzeptiert werden)
 for i in {1..5}; do
@@ -299,16 +373,16 @@ for i in {1..5}; do
 done
 
 # Kitchen Service wieder starten - sollte alle 5 Bestellungen verarbeiten
-docker-compose start kitchen-service
+docker compose start kitchen-service
 
 # Logs prüfen
-docker-compose logs -f kitchen-service
+docker compose logs -f kitchen-service
 ```
 
 ### 4. Skalierung Test: Mehrere Kitchen Instanzen
 ```bash
 # 3 Kitchen Service Instanzen starten
-docker-compose up --scale kitchen-service=3 -d
+docker compose up --scale kitchen-service=3 -d
 
 # Viele Bestellungen absenden
 for i in {1..10}; do
@@ -323,7 +397,7 @@ for i in {1..10}; do
 done
 
 # Logs aller Kitchen Instanzen prüfen - sollten abwechselnd arbeiten
-docker-compose logs kitchen-service | grep "Received order"
+docker compose logs kitchen-service | grep "Received order"
 ```
 
 ### 5. Lieferstatus abfragen
@@ -372,27 +446,27 @@ curl -X POST http://localhost:8080/orders \
 ### RabbitMQ Connection Failed
 ```bash
 # RabbitMQ Status prüfen
-docker-compose ps rabbitmq
+docker compose ps rabbitmq
 
 # RabbitMQ Logs prüfen
-docker-compose logs rabbitmq
+docker compose logs rabbitmq
 
 # Warten bis RabbitMQ bereit ist
-docker-compose up -d rabbitmq
+docker compose up -d rabbitmq
 sleep 10
-docker-compose up order-service kitchen-service delivery-service
+docker compose up order-service kitchen-service delivery-service
 ```
 
 ### Service startet nicht
 ```bash
 # Logs eines Services prüfen
-docker-compose logs order-service
+docker compose logs order-service
 
 # Service neu bauen
 cd order-service
 mvn clean package
 cd ..
-docker-compose up --build order-service
+docker compose up --build order-service
 ```
 
 ### Port bereits belegt
@@ -404,7 +478,7 @@ lsof -i :8082
 lsof -i :8083
 lsof -i :5672
 
-# Ports in docker-compose.yml anpassen
+# Ports in docker compose.yml anpassen
 ```
 
 ## Erweiterungsmöglichkeiten
@@ -450,7 +524,7 @@ m321-projekt/
 │   ├── src/main/resources/
 │   ├── pom.xml
 │   └── Dockerfile
-├── docker-compose.yml
+├── docker compose.yml
 └── README.md
 ```
 

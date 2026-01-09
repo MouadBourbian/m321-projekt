@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pizza Order Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .order-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        input, select {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .orders-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .order-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .order-id {
+            font-weight: 600;
+            color: #667eea;
+            font-family: monospace;
+        }
+
+        .order-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .status-ordered {
+            background: #ffd93d;
+            color: #333;
+        }
+
+        .status-preparing {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .status-ready {
+            background: #51cf66;
+            color: white;
+        }
+
+        .status-delivered {
+            background: #339af0;
+            color: white;
+        }
+
+        .order-details {
+            font-size: 0.95em;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .deliveries-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .delivery-item {
+            background: #f1f3f5;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border-left: 3px solid #51cf66;
+        }
+
+        .delivery-driver {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .delivery-address {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .message.success {
+            background: #d3f9d8;
+            color: #2b8a3e;
+            border-left: 4px solid #51cf66;
+        }
+
+        .message.error {
+            background: #ffe0e0;
+            color: #c92a2a;
+            border-left: 4px solid #ff6b6b;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🍕 Pizza Order Tracker</h1>
+            <p class="subtitle">Live Microservices Visualization</p>
+        </header>
+
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-number" id="totalOrders">0</div>
+                <div class="stat-label">Total Orders</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="activeOrders">0</div>
+                <div class="stat-label">Active Orders</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="deliveriesCount">0</div>
+                <div class="stat-label">Deliveries</div>
+            </div>
+        </div>
+
+        <div class="dashboard">
+            <div class="card">
+                <h2>📝 Place New Order</h2>
+                <div id="orderMessage"></div>
+                <form class="order-form" id="orderForm">
+                    <div class="form-group">
+                        <label for="customerName">Customer Name</label>
+                        <input type="text" id="customerName" placeholder="Max Mustermann" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="pizza">Pizza Type</label>
+                        <select id="pizza" required>
+                            <option value="">Select Pizza...</option>
+                            <option value="Margherita">Margherita</option>
+                            <option value="Salami">Salami</option>
+                            <option value="Hawaii">Hawaii</option>
+                            <option value="Quattro Formaggi">Quattro Formaggi</option>
+                            <option value="Diavola">Diavola</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="quantity">Quantity</label>
+                        <input type="number" id="quantity" min="1" max="10" value="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="address">Delivery Address</label>
+                        <input type="text" id="address" placeholder="Musterstrasse 123, 8000 Zürich" required>
+                    </div>
+                    <button type="submit" id="submitBtn">Place Order</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>🚀 Recent Orders</h2>
+                <div class="orders-list" id="ordersList">
+                    <p style="color: #999; text-align: center; padding: 20px;">No orders yet. Place your first order!</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🚚 Active Deliveries</h2>
+            <div class="deliveries-list" id="deliveriesList">
+                <p style="color: #999; text-align: center; padding: 20px;">No active deliveries</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Service URLs - for production, these should be configurable via environment variables
+        const ORDER_SERVICE_URL = 'http://localhost:8080';
+        const DELIVERY_SERVICE_URL = 'http://localhost:8083';
+        
+        // Refresh interval in milliseconds
+        const REFRESH_INTERVAL = 3000;
+        
+        let orders = [];
+        let deliveries = {};
+
+        // Place Order
+        document.getElementById('orderForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const messageDiv = document.getElementById('orderMessage');
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="loading"></span> Processing...';
+            messageDiv.innerHTML = '';
+            
+            const orderData = {
+                customerName: document.getElementById('customerName').value,
+                pizza: document.getElementById('pizza').value,
+                quantity: parseInt(document.getElementById('quantity').value),
+                address: document.getElementById('address').value
+            };
+            
+            try {
+                const response = await fetch(`${ORDER_SERVICE_URL}/orders`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(orderData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    messageDiv.innerHTML = `<div class="message success">✅ ${result.message}</div>`;
+                    
+                    // Add to orders list
+                    orders.unshift({
+                        ...orderData,
+                        orderId: result.orderId,
+                        status: 'ordered',
+                        timestamp: new Date()
+                    });
+                    
+                    // Reset form
+                    document.getElementById('orderForm').reset();
+                    
+                    updateOrdersList();
+                    updateStats();
+                } else {
+                    messageDiv.innerHTML = `<div class="message error">❌ ${result.message || 'Order failed'}</div>`;
+                }
+            } catch (error) {
+                messageDiv.innerHTML = `<div class="message error">❌ Failed to connect to order service</div>`;
+                console.error('Order error:', error);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Place Order';
+            }
+        });
+
+        // Update Orders List
+        function updateOrdersList() {
+            const ordersList = document.getElementById('ordersList');
+            
+            if (orders.length === 0) {
+                ordersList.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">No orders yet. Place your first order!</p>';
+                return;
+            }
+            
+            ordersList.innerHTML = orders.slice(0, 10).map(order => `
+                <div class="order-item">
+                    <div class="order-header">
+                        <span class="order-id">#${order.orderId ? order.orderId.substring(0, 8) : 'pending'}</span>
+                        <span class="order-status status-${order.status}">${order.status.toUpperCase()}</span>
+                    </div>
+                    <div class="order-details">
+                        <strong>${order.customerName}</strong><br>
+                        ${order.quantity}x ${order.pizza}<br>
+                        📍 ${order.address}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Fetch Deliveries
+        async function fetchDeliveries() {
+            try {
+                const response = await fetch(`${DELIVERY_SERVICE_URL}/deliveries`);
+                if (response.ok) {
+                    deliveries = await response.json();
+                    updateDeliveriesList();
+                    updateStats();
+                }
+            } catch (error) {
+                console.log('Could not fetch deliveries:', error);
+            }
+        }
+
+        // Update Deliveries List
+        function updateDeliveriesList() {
+            const deliveriesList = document.getElementById('deliveriesList');
+            const deliveryArray = Object.values(deliveries);
+            
+            if (deliveryArray.length === 0) {
+                deliveriesList.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">No active deliveries</p>';
+                return;
+            }
+            
+            deliveriesList.innerHTML = deliveryArray.map(delivery => `
+                <div class="delivery-item">
+                    <div class="delivery-driver">🚗 ${delivery.driverName}</div>
+                    <div class="delivery-address">
+                        Order #${delivery.orderId.substring(0, 8)}<br>
+                        📍 ${delivery.address}<br>
+                        Status: <strong>${delivery.status}</strong>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Update Statistics
+        function updateStats() {
+            document.getElementById('totalOrders').textContent = orders.length;
+            document.getElementById('activeOrders').textContent = orders.filter(o => o.status !== 'delivered').length;
+            document.getElementById('deliveriesCount').textContent = Object.keys(deliveries).length;
+        }
+
+        // Auto-refresh deliveries
+        setInterval(fetchDeliveries, REFRESH_INTERVAL);
+        
+        // Initial fetch
+        fetchDeliveries();
+    </script>
+</body>
+</html>
