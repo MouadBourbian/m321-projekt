@@ -33,9 +33,23 @@ build_service "payment-service"
 build_service "kitchen-service"
 build_service "delivery-service"
 
+# Build frontend
+echo ""
+echo "Building frontend..."
+cd frontend || exit 1
+
+if npm install; then
+    echo -e "${GREEN}✓ frontend built successfully${NC}"
+else
+    echo -e "${RED}✗ frontend build failed${NC}"
+    exit 1
+fi
+
+cd ..
+
 echo ""
 echo -e "${GREEN}=============================="
 echo "All services built successfully!"
 echo "==============================${NC}"
 echo ""
-echo "You can now run: docker-compose up --build"
+echo "You can now run: docker compose up --build"
