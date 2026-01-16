@@ -1,4 +1,4 @@
-# Distributed Pizza Platform - Microservices Architecture
+# Distributed Pizza Platform – Microservices Architecture
 
 ## Projektübersicht
 
@@ -13,7 +13,7 @@ graph TB
     Kitchen[Kitchen Service<br/>Port 8082<br/>skalierbar]
     Delivery[Delivery Service<br/>Port 8083]
     RabbitMQ[(RabbitMQ Broker<br/>Port 5672)]
-    
+
     Order -->|REST sync<br/>POST /pay| Payment
     Order -->|AMQP async<br/>order.placed| RabbitMQ
     RabbitMQ -->|order.placed| Kitchen
@@ -24,35 +24,37 @@ graph TB
 ## Services
 
 ### 1. Order Service (Port 8080)
+
 Einstiegspunkt für Bestellungen mit REST API `POST /orders`. Validiert Eingabedaten, kommuniziert synchron mit Payment Service und asynchron mit Kitchen Service via RabbitMQ.
 
 **Technologie:** Java 21, Spring Boot, Spring AMQP
 
 ### 2. Payment Service (Port 8081)
+
 Zahlungsabwicklung mit REST API `POST /pay`. Simuliert Zahlungsverarbeitung mit Verzögerungen und zufälligen Fehlern (20% Rate) für Resilience-Testing.
 
 **Technologie:** Java 21, Spring Boot
 
 ### 3. Kitchen Service (Port 8082)
+
 Konsumiert `order.placed` Events, simuliert Zubereitungszeit (5-10 Sekunden) und veröffentlicht `order.ready` Events. Horizontal skalierbar durch Competing Consumers Pattern.
 
 **Technologie:** Java 21, Spring Boot, Spring AMQP
 
 ### 4. Delivery Service (Port 8083)
+
 Konsumiert `order.ready` Events, weist Fahrer zu und bietet REST API für Statusabfragen (`GET /deliveries/{orderId}`, `GET /deliveries`). Benachrichtigungen via Logs.
 
 **Technologie:** Java 21, Spring Boot, Spring AMQP
 
 ### 5. Frontend (Port 3000)
+
 Web-Interface für Bestellungen mit Echtzeit-Anzeige von Status, aktiven Lieferungen und Live-Statistiken.
 
 **Technologie:** Node.js 18, Express.js, Vanilla JavaScript
 
 ## Voraussetzungen
 
-- **Java 21** (JDK)
-- **Maven 3.8+**
-- **Node.js 18+** (für Frontend)
 - **Docker & Docker Compose**
 
 ## Installation und Start
@@ -66,41 +68,28 @@ docker compose up --build
 Frontend: http://localhost:3000
 
 Mehrere Kitchen Service Instanzen (für Skalierungstests):
+
 ```bash
 docker compose up --build --scale kitchen-service=3
-```
-
-### Lokal ohne Docker
-
-1. RabbitMQ starten:
-```bash
-docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3.12-management-alpine
-```
-
-2. Services starten (jeweils in eigenem Terminal):
-```bash
-cd order-service && mvn spring-boot:run
-cd payment-service && mvn spring-boot:run
-cd kitchen-service && mvn spring-boot:run
-cd delivery-service && mvn spring-boot:run
-cd frontend && npm start
 ```
 
 ## Zugriff auf die Dienste
 
 Nach dem Start sind folgende Dienste verfügbar:
 
-- **Frontend:** http://localhost:3000 - Web-Interface für Bestellungen
-- **Order Service:** http://localhost:8080 - REST API
-- **Payment Service:** http://localhost:8081 - REST API
-- **Kitchen Service:** http://localhost:8082 - Asynchron via RabbitMQ
-- **Delivery Service:** http://localhost:8083 - REST API
-- **RabbitMQ Management:** http://localhost:15672 - Admin UI (guest/guest)
+- **Frontend:** http://localhost:3000 – Web-Interface für Bestellungen
+- **Order Service:** http://localhost:8080 – REST API
+- **Payment Service:** http://localhost:8081 – REST API
+- **Kitchen Service:** http://localhost:8082 – Asynchron via RabbitMQ
+- **Delivery Service:** http://localhost:8083 – REST API
+- **RabbitMQ Management:** http://localhost:15672 – Admin UI (guest/guest)
 
 ## API Contracts
 
 ### POST /orders
+
 Request:
+
 ```json
 {
   "pizza": "Margherita",
@@ -111,6 +100,7 @@ Request:
 ```
 
 Response:
+
 ```json
 {
   "orderId": "123e4567-e89b-12d3-a456-426614174000",
@@ -120,7 +110,9 @@ Response:
 ```
 
 ### POST /pay
+
 Request:
+
 ```json
 {
   "orderId": "123e4567-e89b-12d3-a456-426614174000",
@@ -130,6 +122,7 @@ Request:
 ```
 
 Response:
+
 ```json
 {
   "transactionId": "987fcdeb-51a2-43d7-b543-123456789abc",
@@ -141,6 +134,7 @@ Response:
 ### RabbitMQ Messages
 
 **order.placed:**
+
 ```json
 {
   "orderId": "123e4567-e89b-12d3-a456-426614174000",
@@ -153,6 +147,7 @@ Response:
 ```
 
 **order.ready:**
+
 ```json
 {
   "orderId": "123e4567-e89b-12d3-a456-426614174000",
@@ -165,6 +160,7 @@ Response:
 ## Testing Szenarien
 
 ### Mit Frontend
+
 1. System starten: `docker compose up --build`
 2. Frontend öffnen: http://localhost:3000
 3. Bestellung aufgeben und Status beobachten
@@ -172,6 +168,7 @@ Response:
 ### Via API
 
 **Erfolgreiche Bestellung:**
+
 ```bash
 curl -X POST http://localhost:8080/orders \
   -H "Content-Type: application/json" \
@@ -179,6 +176,7 @@ curl -X POST http://localhost:8080/orders \
 ```
 
 **Resilience: Payment Service offline**
+
 ```bash
 docker compose stop payment-service
 curl -X POST http://localhost:8080/orders -H "Content-Type: application/json" -d '{"pizza": "Margherita", "quantity": 1, "address": "Test", "customerName": "User"}'
@@ -186,6 +184,7 @@ docker compose start payment-service
 ```
 
 **Pufferung: Kitchen Service offline**
+
 ```bash
 docker compose stop kitchen-service
 
@@ -200,6 +199,7 @@ docker compose logs -f kitchen-service
 ```
 
 **Skalierung: Mehrere Kitchen Instanzen**
+
 ```bash
 docker compose up --scale kitchen-service=3 -d
 
@@ -218,51 +218,3 @@ docker compose logs kitchen-service | grep "Received order"
 - **Fehlerbehandlung:** Graceful Degradation bei Service-Ausfall, konfigurierbare Timeouts
 - **Skalierung:** Competing Consumers Pattern mit Load Balancing
 - **Monitoring:** Health Endpoints, Structured Logging, RabbitMQ Management UI (http://localhost:15672)
-
-## Troubleshooting
-
-**RabbitMQ Connection Failed:**
-```bash
-docker compose ps rabbitmq
-docker compose logs rabbitmq
-```
-
-**Service startet nicht:**
-```bash
-docker compose logs <service-name>
-cd <service-name> && mvn clean package && cd ..
-docker compose up --build <service-name>
-```
-
-**Port bereits belegt:**
-```bash
-lsof -i :<port>
-# Ports in docker-compose.yml anpassen
-```
-
-## Erweiterungsmöglichkeiten
-
-- **Persistence:** Datenbanken für Order History und Delivery Status
-- **Authentication:** OAuth2/JWT für Service-to-Service Kommunikation
-- **Observability:** Prometheus, Grafana, Jaeger
-- **API Gateway:** Kong oder Spring Cloud Gateway
-- **Service Discovery:** Consul oder Eureka
-- **Saga Pattern:** Kompensierung bei fehlgeschlagenen Transaktionen
-
-## Projektstruktur
-
-**Backend Services (Java):**
-- `src/main/java/` - Java-Quellcode mit Standard-Layern (controller, service, model, config)
-- `src/main/resources/application.yml` - Service-Konfiguration
-- `pom.xml` - Maven Dependencies
-- `Dockerfile` - Container-Image Definition
-
-**Frontend (Node.js):**
-- `public/` - Static HTML/CSS/JS files
-- `server.js` - Express.js Server
-- `package.json` - NPM Dependencies
-- `Dockerfile` - Container-Image Definition
-
-## Lizenz
-
-Dieses Projekt wurde für das Modul M321 - Verteilte Systeme erstellt.
