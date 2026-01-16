@@ -143,8 +143,6 @@ Response:
 
 ## Resilience & Hochverfügbarkeit
 
-### Fehlerszenarien und Handling
-
 ```mermaid
 sequenceDiagram
     participant Order as Order Service
@@ -169,13 +167,11 @@ sequenceDiagram
 
 ### Verfügbarkeitsmerkmale
 
-| Feature | Implementierung | Nutzen |
-|---------|----------------|--------|
-| Durable Queues | RabbitMQ Persistence | Keine Datenverluste |
-| Async Processing | Message Broker | Entkopplung der Services |
-| Retry Logic | Spring AMQP | Automatische Wiederholungen |
-| Timeout Handling | RestTemplate Config | Keine hängenden Requests |
-| Horizontal Scaling | Stateless Services | Beliebige Skalierung |
+- **Durable Queues:** RabbitMQ Persistence verhindert Datenverluste
+- **Async Processing:** Message Broker entkoppelt Services
+- **Retry Logic:** Spring AMQP mit automatischen Wiederholungen
+- **Timeout Handling:** RestTemplate Config verhindert hängende Requests
+- **Horizontal Scaling:** Stateless Services ermöglichen beliebige Skalierung
 
 ## Technologie-Stack
 
@@ -258,151 +254,72 @@ Zugriff: http://localhost:15672
 
 ## Performance-Charakteristiken
 
-### Latency
+**Latency:**
+- Order REST API: 50-100ms (max 500ms)
+- Payment Processing: 100-500ms (max 2s mit Simulation)
+- Kitchen Processing: 5-10s (Simulation)
+- Message Delivery: <50ms (max 100ms)
 
-| Operation | Durchschnitt | Maximum |
-|-----------|--------------|---------|
-| Order REST API | 50-100ms | 500ms |
-| Payment Processing | 100-500ms | 2s (mit Simulation) |
-| Kitchen Processing | 5-10s | (Simulation) |
-| Message Delivery | <50ms | 100ms |
+**Throughput:**
+- Order/Payment Service: ~100 req/s
+- Kitchen Service: ~0.1-0.2 orders/s (1 Instanz), ~0.3-0.6 orders/s (3 Instanzen)
+- Message Broker: >1000 msg/s
 
-### Throughput
-
-| Komponente | Requests/sec |
-|------------|--------------|
-| Order Service | ~100 req/s |
-| Payment Service | ~100 req/s |
-| Kitchen Service (1 Instanz) | ~0.1-0.2 orders/s |
-| Kitchen Service (3 Instanzen) | ~0.3-0.6 orders/s |
-| Message Broker | >1000 msg/s |
-
-### Skalierbarkeit
-
-- **Order Service**: Horizontal skalierbar (Load Balancer erforderlich)
-- **Payment Service**: Horizontal skalierbar (Load Balancer erforderlich)
-- **Kitchen Service**: Horizontal skalierbar (automatisch durch RabbitMQ)
-- **Delivery Service**: Horizontal skalierbar (automatisch durch RabbitMQ)
+**Skalierbarkeit:**
+- Order/Payment Service: Horizontal skalierbar (Load Balancer erforderlich)
+- Kitchen/Delivery Service: Horizontal skalierbar (automatisch durch RabbitMQ)
 
 ## Security Considerations
 
-### Aktuelle Implementierung
+**Aktuelle Implementierung:**
+- Input Validation mit Bean Validation
+- Error Handling ohne Stacktraces im Response
+- Konfigurierte Timeouts für REST-Calls
 
-1. **Input Validation**: Bean Validation auf allen Endpunkten
-2. **Error Handling**: Keine Stacktraces im Response
-3. **Timeouts**: Konfigurierte Timeouts für alle REST-Calls
-
-### Empfohlene Erweiterungen
-
-1. **Authentication & Authorization**
-   - OAuth 2.0 für Service-to-Service
-   - JWT für Client-Authentifizierung
-
-2. **Transport Security**
-   - TLS für alle Verbindungen
-   - RabbitMQ mit SSL/TLS
-
-3. **Rate Limiting**
-   - API Gateway mit Rate Limiting
-   - DDoS Protection
-
-4. **Secrets Management**
-   - Vault oder AWS Secrets Manager
-   - Keine Hardcoded Credentials
+**Empfohlene Erweiterungen:**
+- Authentication & Authorization (OAuth 2.0, JWT)
+- Transport Security (TLS für alle Verbindungen)
+- Rate Limiting (API Gateway)
+- Secrets Management (Vault, AWS Secrets Manager)
 
 ## Erweiterungsmöglichkeiten
 
-### Kurzfristig (Low-Hanging Fruit)
+**Kurzfristig:**
+- Persistence Layer (PostgreSQL, Redis Cache)
+- API Gateway (Kong, Spring Cloud Gateway)
+- Service Discovery (Consul, Eureka)
 
-1. **Persistence Layer**
-   - PostgreSQL für Order History
-   - Redis für Delivery Status Cache
+**Mittelfristig:**
+- Observability (Prometheus, Grafana, Jaeger, ELK Stack)
+- Advanced Messaging (Topic Exchange, Dead Letter Queues)
+- Configuration Management (Spring Cloud Config Server)
 
-2. **API Gateway**
-   - Kong oder Spring Cloud Gateway
-   - Zentraler Entry Point
-   - Request Routing
-
-3. **Service Discovery**
-   - Consul oder Eureka
-   - Dynamische Service-Registrierung
-
-### Mittelfristig
-
-1. **Observability**
-   - Prometheus + Grafana (Metrics)
-   - Jaeger (Distributed Tracing)
-   - ELK Stack (Centralized Logging)
-
-2. **Advanced Messaging**
-   - Topic Exchange statt Direct Queue
-   - Dead Letter Queues
-   - Message TTL
-
-3. **Configuration Management**
-   - Spring Cloud Config Server
-   - Externalized Configuration
-
-### Langfristig
-
-1. **Saga Pattern**
-   - Orchestration vs Choreography
-   - Compensating Transactions
-   - Event Sourcing
-
-2. **CQRS**
-   - Command Query Responsibility Segregation
-   - Separate Read/Write Models
-
-3. **Kubernetes**
-   - Production-Grade Orchestration
-   - Auto-Scaling
-   - Self-Healing
+**Langfristig:**
+- Saga Pattern (Compensating Transactions, Event Sourcing)
+- CQRS (Separate Read/Write Models)
+- Kubernetes (Auto-Scaling, Self-Healing)
 
 ## Testing-Strategie
 
-### Unit Tests
-- JUnit 5 für alle Services
-- Mockito für Dependencies
-- Coverage > 80%
-
-### Integration Tests
-- @SpringBootTest für Context Loading
-- @WebMvcTest für Controller
-- @DataJpaTest für Repositories
-- Testcontainers für RabbitMQ
-
-### Contract Tests
-- Pact für Consumer-Driven Contracts
-- Schema Validation
-
-### End-to-End Tests
-- Automatisierte Tests mit Docker Compose
-- Postman/Newman Collections
+- **Unit Tests:** JUnit 5, Mockito (Coverage > 80%)
+- **Integration Tests:** @SpringBootTest, @WebMvcTest, @DataJpaTest, Testcontainers
+- **Contract Tests:** Pact für Consumer-Driven Contracts
+- **End-to-End Tests:** Docker Compose, Postman/Newman
 
 ## Betrieb & Operations
 
-### Deployment Process
+**Deployment:**
+```bash
+./build-all.sh && ./test-system.sh && docker compose up --build
+docker compose up --scale kitchen-service=N
+```
 
-1. **Build**: `./build-all.sh`
-2. **Test**: `./test-system.sh`
-3. **Deploy**: `docker-compose up --build`
-4. **Scale**: `docker-compose up --scale kitchen-service=N`
-
-### Monitoring Checklist
-
-- [ ] Alle Services sind healthy
-- [ ] RabbitMQ Queues sind nicht überlaufen
-- [ ] Keine Error Logs in letzten 5 Minuten
-- [ ] Response Times < 500ms (p95)
-- [ ] CPU Usage < 80%
-- [ ] Memory Usage < 80%
-
-### Backup & Recovery
-
-1. **RabbitMQ State**: Persistence Volume für Queues
-2. **Service Logs**: Centralized Logging System
-3. **Configuration**: Version Control (Git)
+**Monitoring Checklist:**
+- Alle Services healthy
+- RabbitMQ Queues nicht überlaufen
+- Keine Error Logs (letzte 5 Min)
+- Response Times < 500ms (p95)
+- CPU/Memory Usage < 80%
 
 ## Zusammenfassung
 
