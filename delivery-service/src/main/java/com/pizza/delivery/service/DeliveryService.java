@@ -80,7 +80,7 @@ public class DeliveryService {
         deliveries.values().forEach(delivery -> {
             if ("ASSIGNED".equals(delivery.getStatus())) {
                 // Check if target time for IN_TRANSIT has been reached
-                if (now.isAfter(delivery.getTargetInTransitTime()) || now.isEqual(delivery.getTargetInTransitTime())) {
+                if (!now.isBefore(delivery.getTargetInTransitTime())) {
                     delivery.setStatus("IN_TRANSIT");
                     delivery.setInTransitAt(now);
                     
@@ -93,7 +93,7 @@ public class DeliveryService {
                 }
             } else if ("IN_TRANSIT".equals(delivery.getStatus()) && delivery.getTargetDeliveredTime() != null) {
                 // Check if target time for DELIVERED has been reached
-                if (now.isAfter(delivery.getTargetDeliveredTime()) || now.isEqual(delivery.getTargetDeliveredTime())) {
+                if (!now.isBefore(delivery.getTargetDeliveredTime())) {
                     delivery.setStatus("DELIVERED");
                     delivery.setDeliveredAt(now);
                     logger.info("Order {} has been DELIVERED to {} by {}", 
