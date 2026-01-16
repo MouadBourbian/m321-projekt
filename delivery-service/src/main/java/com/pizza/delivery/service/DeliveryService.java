@@ -78,26 +78,29 @@ public class DeliveryService {
         LocalDateTime now = LocalDateTime.now();
         
         deliveries.values().forEach(delivery -> {
-            if ("ASSIGNED".equals(delivery.getStatus())) {
-                // Check if target time for IN_TRANSIT has been reached
-                if (!now.isBefore(delivery.getTargetInTransitTime())) {
-                    delivery.setStatus("IN_TRANSIT");
-                    delivery.setInTransitAt(now);
-                    
-                    // Calculate target time for delivery
-                    int deliverySeconds = MIN_DELIVERY_TIME + random.nextInt(MAX_DELIVERY_TIME - MIN_DELIVERY_TIME + 1);
-                    delivery.setTargetDeliveredTime(now.plusSeconds(deliverySeconds));
-                    
-                    logger.info("Order {} status changed to IN_TRANSIT (driver {} on the way)", 
-                        delivery.getOrderId(), delivery.getDriverName());
-                }
-            } else if ("IN_TRANSIT".equals(delivery.getStatus()) && delivery.getTargetDeliveredTime() != null) {
-                // Check if target time for DELIVERED has been reached
-                if (!now.isBefore(delivery.getTargetDeliveredTime())) {
-                    delivery.setStatus("DELIVERED");
-                    delivery.setDeliveredAt(now);
-                    logger.info("Order {} has been DELIVERED to {} by {}", 
-                        delivery.getOrderId(), delivery.getAddress(), delivery.getDriverName());
+            // Use synchronized block to prevent race conditions during status updates
+            synchronized (delivery) {
+                if ("ASSIGNED".equals(delivery.getStatus()) && delivery.getTargetInTransitTime() != null) {
+                    // Check if target time for IN_TRANSIT has been reached
+                    if (!now.isBefore(delivery.getTargetInTransitTime())) {
+                        delivery.setStatus("IN_TRANSIT");
+                        delivery.setInTransitAt(now);
+                        
+                        // Calculate target time for delivery
+                        int deliverySeconds = MIN_DELIVERY_TIME + random.nextInt(MAX_DELIVERY_TIME - MIN_DELIVERY_TIME + 1);
+                        delivery.setTargetDeliveredTime(now.plusSeconds(deliverySeconds));
+                        
+                        logger.info("Order {} status changed to IN_TRANSIT (driver {} on the way)", 
+                            delivery.getOrderId(), delivery.getDriverName());
+                    }
+                } else if ("IN_TRANSIT".equals(delivery.getStatus()) && delivery.getTargetDeliveredTime() != null) {
+                    // Check if target time for DELIVERED has been reached
+                    if (!now.isBefore(delivery.getTargetDeliveredTime())) {
+                        delivery.setStatus("DELIVERED");
+                        delivery.setDeliveredAt(now);
+                        logger.info("Order {} has been DELIVERED to {} by {}", 
+                            delivery.getOrderId(), delivery.getAddress(), delivery.getDriverName());
+                    }
                 }
             }
         });
