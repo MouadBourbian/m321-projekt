@@ -188,7 +188,13 @@ docker compose start payment-service
 **Pufferung: Kitchen Service offline**
 ```bash
 docker compose stop kitchen-service
-for i in {1..5}; do curl -X POST http://localhost:8080/orders -H "Content-Type: application/json" -d "{\"pizza\": \"Margherita\", \"quantity\": 1, \"address\": \"Test $i\", \"customerName\": \"User $i\"}"; done
+
+for i in {1..5}; do
+  curl -X POST http://localhost:8080/orders \
+    -H "Content-Type: application/json" \
+    -d "{\"pizza\": \"Margherita\", \"quantity\": 1, \"address\": \"Test $i\", \"customerName\": \"User $i\"}"
+done
+
 docker compose start kitchen-service
 docker compose logs -f kitchen-service
 ```
@@ -196,7 +202,13 @@ docker compose logs -f kitchen-service
 **Skalierung: Mehrere Kitchen Instanzen**
 ```bash
 docker compose up --scale kitchen-service=3 -d
-for i in {1..10}; do curl -X POST http://localhost:8080/orders -H "Content-Type: application/json" -d "{\"pizza\": \"Margherita\", \"quantity\": 1, \"address\": \"Test $i\", \"customerName\": \"User $i\"}"; done
+
+for i in {1..10}; do
+  curl -X POST http://localhost:8080/orders \
+    -H "Content-Type: application/json" \
+    -d "{\"pizza\": \"Margherita\", \"quantity\": 1, \"address\": \"Test $i\", \"customerName\": \"User $i\"}"
+done
+
 docker compose logs kitchen-service | grep "Received order"
 ```
 
@@ -239,10 +251,16 @@ lsof -i :<port>
 
 ## Projektstruktur
 
-Jeder Service hat seine eigene Verzeichnisstruktur mit:
+**Backend Services (Java):**
 - `src/main/java/` - Java-Quellcode mit Standard-Layern (controller, service, model, config)
 - `src/main/resources/application.yml` - Service-Konfiguration
 - `pom.xml` - Maven Dependencies
+- `Dockerfile` - Container-Image Definition
+
+**Frontend (Node.js):**
+- `public/` - Static HTML/CSS/JS files
+- `server.js` - Express.js Server
+- `package.json` - NPM Dependencies
 - `Dockerfile` - Container-Image Definition
 
 ## Lizenz

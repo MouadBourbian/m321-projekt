@@ -161,8 +161,8 @@ sequenceDiagram
     Payment-->>Order: 200 OK
     Order->>RabbitMQ: order.placed
     Note right of RabbitMQ: Nachricht gepuffert
-    Kitchen->>RabbitMQ: Service startet
-    RabbitMQ->>Kitchen: Nachrichten verarbeitet
+    Kitchen->>RabbitMQ: Kitchen connects
+    RabbitMQ->>Kitchen: Consume buffered messages
 ```
 
 ### Verfügbarkeitsmerkmale
