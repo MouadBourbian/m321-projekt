@@ -6,6 +6,7 @@ import com.pizza.delivery.model.OrderReadyEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -23,6 +24,14 @@ public class DeliveryService {
     private static final String[] DRIVER_NAMES = {
         "Max Mustermann", "Anna Schmidt", "Peter Mueller", "Lisa Weber", "Tom Fischer"
     };
+    
+    // Time in seconds after assignment when order goes IN_TRANSIT (10-15 seconds)
+    private static final int MIN_IN_TRANSIT_TIME = 10;
+    private static final int MAX_IN_TRANSIT_TIME = 15;
+    
+    // Time in seconds after IN_TRANSIT when order is DELIVERED (15-25 seconds)
+    private static final int MIN_DELIVERY_TIME = 15;
+    private static final int MAX_DELIVERY_TIME = 25;
 
     @RabbitListener(queues = RabbitMQConfig.ORDER_READY_QUEUE)
     public void handleOrderReady(OrderReadyEvent event) {
@@ -39,7 +48,8 @@ public class DeliveryService {
             driverName,
             event.getAddress(),
             now,
-            estimatedDelivery
+            estimatedDelivery,
+            null
         );
 
         deliveries.put(event.getOrderId(), status);
@@ -49,6 +59,42 @@ public class DeliveryService {
 
         // Simulate customer notification
         sendNotification(event, driverName, estimatedDelivery);
+    }
+    
+    /**
+     * Scheduled task that runs every 5 seconds to update delivery statuses
+     * - ASSIGNED -> IN_TRANSIT after 10-15 seconds
+     * - IN_TRANSIT -> DELIVERED after 15-25 seconds
+     */
+    @Scheduled(fixedRate = 5000)
+    public void updateDeliveryStatuses() {
+        LocalDateTime now = LocalDateTime.now();
+        
+        deliveries.values().forEach(delivery -> {
+            if ("ASSIGNED".equals(delivery.getStatus())) {
+                // Check if enough time has passed to transition to IN_TRANSIT
+                long secondsSinceAssignment = java.time.Duration.between(delivery.getAssignedAt(), now).getSeconds();
+                int transitionTime = MIN_IN_TRANSIT_TIME + random.nextInt(MAX_IN_TRANSIT_TIME - MIN_IN_TRANSIT_TIME);
+                
+                if (secondsSinceAssignment >= transitionTime) {
+                    delivery.setStatus("IN_TRANSIT");
+                    logger.info("Order {} status changed to IN_TRANSIT (driver {} on the way)", 
+                        delivery.getOrderId(), delivery.getDriverName());
+                }
+            } else if ("IN_TRANSIT".equals(delivery.getStatus())) {
+                // Check if enough time has passed to transition to DELIVERED
+                long secondsSinceAssignment = java.time.Duration.between(delivery.getAssignedAt(), now).getSeconds();
+                int deliveryTime = MIN_IN_TRANSIT_TIME + MAX_IN_TRANSIT_TIME + 
+                                   MIN_DELIVERY_TIME + random.nextInt(MAX_DELIVERY_TIME - MIN_DELIVERY_TIME);
+                
+                if (secondsSinceAssignment >= deliveryTime) {
+                    delivery.setStatus("DELIVERED");
+                    delivery.setDeliveredAt(now);
+                    logger.info("Order {} has been DELIVERED to {} by {}", 
+                        delivery.getOrderId(), delivery.getAddress(), delivery.getDriverName());
+                }
+            }
+        });
     }
 
     private void sendNotification(OrderReadyEvent event, String driverName, LocalDateTime estimatedDelivery) {

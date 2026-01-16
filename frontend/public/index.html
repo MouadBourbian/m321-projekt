@@ -204,6 +204,16 @@
             background: #51cf66;
             color: white;
         }
+        
+        .status-assigned {
+            background: #74c0fc;
+            color: white;
+        }
+        
+        .status-in_transit {
+            background: #ffa94d;
+            color: white;
+        }
 
         .status-delivered {
             background: #339af0;
@@ -475,16 +485,33 @@
                 return;
             }
             
-            deliveriesList.innerHTML = deliveryArray.map(delivery => `
-                <div class="delivery-item">
-                    <div class="delivery-driver">🚗 ${delivery.driverName}</div>
-                    <div class="delivery-address">
-                        Order #${delivery.orderId.substring(0, 8)}<br>
-                        📍 ${delivery.address}<br>
-                        Status: <strong>${delivery.status}</strong>
+            deliveriesList.innerHTML = deliveryArray.map(delivery => {
+                // Format status for display
+                let statusDisplay = delivery.status;
+                let statusIcon = '🚗';
+                
+                if (delivery.status === 'ASSIGNED') {
+                    statusIcon = '📋';
+                    statusDisplay = 'Assigned';
+                } else if (delivery.status === 'IN_TRANSIT') {
+                    statusIcon = '🚚';
+                    statusDisplay = 'In Transit';
+                } else if (delivery.status === 'DELIVERED') {
+                    statusIcon = '✅';
+                    statusDisplay = 'Delivered';
+                }
+                
+                return `
+                    <div class="delivery-item">
+                        <div class="delivery-driver">${statusIcon} ${delivery.driverName}</div>
+                        <div class="delivery-address">
+                            Order #${delivery.orderId.substring(0, 8)}<br>
+                            📍 ${delivery.address}<br>
+                            Status: <strong>${statusDisplay}</strong>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         // Update Statistics

@@ -16,4 +16,5 @@ public class DeliveryStatus {
     private String address;
     private LocalDateTime assignedAt;
     private LocalDateTime estimatedDeliveryTime;
+    private LocalDateTime deliveredAt;
 }
