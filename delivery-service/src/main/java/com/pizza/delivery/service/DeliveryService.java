@@ -32,6 +32,13 @@ public class DeliveryService {
     // Time in seconds after IN_TRANSIT when order is DELIVERED (15-25 seconds)
     private static final int MIN_DELIVERY_TIME = 15;
     private static final int MAX_DELIVERY_TIME = 25;
+    
+    /**
+     * Calculate a random time in seconds within the given range (inclusive)
+     */
+    private int calculateRandomSeconds(int minSeconds, int maxSeconds) {
+        return minSeconds + random.nextInt(maxSeconds - minSeconds + 1);
+    }
 
     @RabbitListener(queues = RabbitMQConfig.ORDER_READY_QUEUE)
     public void handleOrderReady(OrderReadyEvent event) {
@@ -43,7 +50,7 @@ public class DeliveryService {
         LocalDateTime estimatedDelivery = now.plusMinutes(20 + random.nextInt(20)); // 20-40 minutes
         
         // Calculate target transition times upfront
-        int inTransitSeconds = MIN_IN_TRANSIT_TIME + random.nextInt(MAX_IN_TRANSIT_TIME - MIN_IN_TRANSIT_TIME + 1);
+        int inTransitSeconds = calculateRandomSeconds(MIN_IN_TRANSIT_TIME, MAX_IN_TRANSIT_TIME);
         LocalDateTime targetInTransitTime = now.plusSeconds(inTransitSeconds);
 
         DeliveryStatus status = new DeliveryStatus(
@@ -87,7 +94,7 @@ public class DeliveryService {
                         delivery.setInTransitAt(now);
                         
                         // Calculate target time for delivery
-                        int deliverySeconds = MIN_DELIVERY_TIME + random.nextInt(MAX_DELIVERY_TIME - MIN_DELIVERY_TIME + 1);
+                        int deliverySeconds = calculateRandomSeconds(MIN_DELIVERY_TIME, MAX_DELIVERY_TIME);
                         delivery.setTargetDeliveredTime(now.plusSeconds(deliverySeconds));
                         
                         logger.info("Order {} status changed to IN_TRANSIT (driver {} on the way)", 
