@@ -17,4 +17,5 @@ public class DeliveryStatus {
     private LocalDateTime assignedAt;
     private LocalDateTime estimatedDeliveryTime;
     private LocalDateTime deliveredAt;
+    private LocalDateTime inTransitAt;
 }

@@ -49,6 +49,7 @@ public class DeliveryService {
             event.getAddress(),
             now,
             estimatedDelivery,
+            null,
             null
         );
 
@@ -74,20 +75,20 @@ public class DeliveryService {
             if ("ASSIGNED".equals(delivery.getStatus())) {
                 // Check if enough time has passed to transition to IN_TRANSIT
                 long secondsSinceAssignment = java.time.Duration.between(delivery.getAssignedAt(), now).getSeconds();
-                int transitionTime = MIN_IN_TRANSIT_TIME + random.nextInt(MAX_IN_TRANSIT_TIME - MIN_IN_TRANSIT_TIME);
+                int transitionTime = MIN_IN_TRANSIT_TIME + random.nextInt(MAX_IN_TRANSIT_TIME - MIN_IN_TRANSIT_TIME + 1);
                 
                 if (secondsSinceAssignment >= transitionTime) {
                     delivery.setStatus("IN_TRANSIT");
+                    delivery.setInTransitAt(now);
                     logger.info("Order {} status changed to IN_TRANSIT (driver {} on the way)", 
                         delivery.getOrderId(), delivery.getDriverName());
                 }
-            } else if ("IN_TRANSIT".equals(delivery.getStatus())) {
+            } else if ("IN_TRANSIT".equals(delivery.getStatus()) && delivery.getInTransitAt() != null) {
                 // Check if enough time has passed to transition to DELIVERED
-                long secondsSinceAssignment = java.time.Duration.between(delivery.getAssignedAt(), now).getSeconds();
-                int deliveryTime = MIN_IN_TRANSIT_TIME + MAX_IN_TRANSIT_TIME + 
-                                   MIN_DELIVERY_TIME + random.nextInt(MAX_DELIVERY_TIME - MIN_DELIVERY_TIME);
+                long secondsSinceInTransit = java.time.Duration.between(delivery.getInTransitAt(), now).getSeconds();
+                int deliveryTime = MIN_DELIVERY_TIME + random.nextInt(MAX_DELIVERY_TIME - MIN_DELIVERY_TIME + 1);
                 
-                if (secondsSinceAssignment >= deliveryTime) {
+                if (secondsSinceInTransit >= deliveryTime) {
                     delivery.setStatus("DELIVERED");
                     delivery.setDeliveredAt(now);
                     logger.info("Order {} has been DELIVERED to {} by {}", 
