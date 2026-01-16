@@ -6,44 +6,19 @@ Dieses Projekt implementiert eine verteilte Plattform für einen Pizza-Lieferdie
 
 ## Architektur
 
-```
-┌─────────────┐      REST (sync)      ┌─────────────┐
-│   Order     │───────────────────────>│   Payment   │
-│  Service    │                        │   Service   │
-│  (8080)     │                        │   (8081)    │
-└─────────────┘                        └─────────────┘
-      │
-      │ RabbitMQ (async)
-      │ order.placed
-      ▼
-┌─────────────┐
-│  RabbitMQ   │
-│   Broker    │
-│  (5672)     │
-└─────────────┘
-      │
-      │ order.placed
-      ▼
-┌─────────────┐
-│   Kitchen   │
-│  Service    │
-│  (8082)     │ (skalierbar)
-└─────────────┘
-      │
-      │ order.ready
-      ▼
-┌─────────────┐
-│  RabbitMQ   │
-│   Broker    │
-└─────────────┘
-      │
-      │ order.ready
-      ▼
-┌─────────────┐
-│  Delivery   │
-│  Service    │
-│  (8083)     │
-└─────────────┘
+```mermaid
+graph TB
+    Order[Order Service<br/>Port 8080]
+    Payment[Payment Service<br/>Port 8081]
+    Kitchen[Kitchen Service<br/>Port 8082<br/>skalierbar]
+    Delivery[Delivery Service<br/>Port 8083]
+    RabbitMQ[(RabbitMQ Broker<br/>Port 5672)]
+    
+    Order -->|REST sync<br/>POST /pay| Payment
+    Order -->|AMQP async<br/>order.placed| RabbitMQ
+    RabbitMQ -->|order.placed| Kitchen
+    Kitchen -->|order.ready| RabbitMQ
+    RabbitMQ -->|order.ready| Delivery
 ```
 
 ## Services
@@ -496,37 +471,11 @@ lsof -i :5672
 
 ## Projektstruktur
 
-```
-m321-projekt/
-├── order-service/
-│   ├── src/main/java/com/pizza/order/
-│   │   ├── controller/
-│   │   ├── service/
-│   │   ├── model/
-│   │   ├── config/
-│   │   └── OrderServiceApplication.java
-│   ├── src/main/resources/
-│   │   └── application.yml
-│   ├── pom.xml
-│   └── Dockerfile
-├── payment-service/
-│   ├── src/main/java/com/pizza/payment/
-│   ├── src/main/resources/
-│   ├── pom.xml
-│   └── Dockerfile
-├── kitchen-service/
-│   ├── src/main/java/com/pizza/kitchen/
-│   ├── src/main/resources/
-│   ├── pom.xml
-│   └── Dockerfile
-├── delivery-service/
-│   ├── src/main/java/com/pizza/delivery/
-│   ├── src/main/resources/
-│   ├── pom.xml
-│   └── Dockerfile
-├── docker compose.yml
-└── README.md
-```
+Jeder Service hat seine eigene Verzeichnisstruktur mit:
+- `src/main/java/` - Java-Quellcode mit Standard-Layern (controller, service, model, config)
+- `src/main/resources/application.yml` - Service-Konfiguration
+- `pom.xml` - Maven Dependencies
+- `Dockerfile` - Container-Image Definition
 
 ## Team & Verantwortlichkeiten
 

@@ -8,52 +8,51 @@ Die Distributed Pizza Platform ist eine Microservices-Architektur, die einen kom
 
 ### Komponenten-Übersicht
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Client / API                             │
-└─────────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      Order Service (8080)                        │
-│  • REST API Endpoint                                             │
-│  • Input Validation                                              │
-│  • Synchronous Payment Processing                                │
-│  • Asynchronous Order Queueing                                   │
-└─────────────────────────────────────────────────────────────────┘
-           │                                      │
-           │ REST (sync)                         │ AMQP (async)
-           ▼                                      ▼
-┌──────────────────────┐              ┌───────────────────────────┐
-│ Payment Service      │              │    RabbitMQ Broker        │
-│ (8081)               │              │                           │
-│  • Payment Processing │              │  • order.placed queue     │
-│  • Random Failures    │              │  • order.ready queue      │
-│  • Delay Simulation   │              │  • Durable queues         │
-└──────────────────────┘              └───────────────────────────┘
-                                                  │
-                                                  ▼
-                                      ┌───────────────────────────┐
-                                      │   Kitchen Service(s)      │
-                                      │   (8082)                  │
-                                      │  • Order Consumer         │
-                                      │  • Cooking Simulation     │
-                                      │  • Ready Event Publisher  │
-                                      │  • Scalable (n instances) │
-                                      └───────────────────────────┘
-                                                  │
-                                                  │ AMQP
-                                                  ▼
-                                      ┌───────────────────────────┐
-                                      │  Delivery Service (8083)  │
-                                      │  • Ready Event Consumer   │
-                                      │  • Driver Assignment      │
-                                      │  • Status REST API        │
-                                      │  • Notifications          │
-                                      └───────────────────────────┘
+```mermaid
+graph TB
+    Client[Client / API]
+    Order[Order Service Port 8080<br/>• REST API Endpoint<br/>• Input Validation<br/>• Sync Payment<br/>• Async Queueing]
+    Payment[Payment Service Port 8081<br/>• Payment Processing<br/>• Random Failures<br/>• Delay Simulation]
+    RabbitMQ[(RabbitMQ Broker<br/>• order.placed queue<br/>• order.ready queue<br/>• Durable queues)]
+    Kitchen[Kitchen Service Port 8082<br/>• Order Consumer<br/>• Cooking Simulation<br/>• Ready Event Publisher<br/>• Scalable n instances]
+    Delivery[Delivery Service Port 8083<br/>• Ready Event Consumer<br/>• Driver Assignment<br/>• Status REST API<br/>• Notifications]
+    
+    Client -->|HTTP| Order
+    Order -->|REST sync| Payment
+    Order -->|AMQP async| RabbitMQ
+    RabbitMQ -->|order.placed| Kitchen
+    Kitchen -->|order.ready| RabbitMQ
+    RabbitMQ -->|order.ready| Delivery
 ```
 
 ## Kommunikations-Patterns
+
+### Bestellablauf
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Order as Order Service
+    participant Payment as Payment Service
+    participant RabbitMQ as Message Broker
+    participant Kitchen as Kitchen Service
+    participant Delivery as Delivery Service
+    
+    Client->>Order: POST /orders
+    Order->>Order: Validierung
+    Order->>Payment: POST /pay
+    Payment-->>Order: 200 OK (transactionId)
+    Order->>RabbitMQ: order.placed
+    Order-->>Client: 200 OK (orderId)
+    
+    RabbitMQ->>Kitchen: order.placed
+    Kitchen->>Kitchen: Zubereitung (5-10s)
+    Kitchen->>RabbitMQ: order.ready
+    
+    RabbitMQ->>Delivery: order.ready
+    Delivery->>Delivery: Fahrerzuweisung
+    Delivery->>Delivery: Benachrichtigung
+```
 
 ### 1. Synchrone Kommunikation (REST)
 
@@ -146,30 +145,26 @@ Response:
 
 ### Fehlerszenarien und Handling
 
-#### Szenario 1: Payment Service nicht erreichbar
-```
-Order Service → Payment Service (Timeout/Error)
-                ↓
-         Freundliche Fehlermeldung an Kunde
-         "Payment system is currently unavailable"
-```
-
-#### Szenario 2: Kitchen Service offline
-```
-Order Service → RabbitMQ Queue (order.placed)
-                     ↓
-              Nachricht wird gepuffert
-                     ↓
-         Kitchen Service startet neu
-                     ↓
-         Alle Nachrichten werden verarbeitet
-```
-
-#### Szenario 3: Überlastung der Küche
-```
-Viele Bestellungen → Queue → Mehrere Kitchen Instanzen
-                              Round-Robin Verteilung
-                              Parallele Verarbeitung
+```mermaid
+sequenceDiagram
+    participant Order as Order Service
+    participant Payment as Payment Service
+    participant RabbitMQ as Message Broker
+    participant Kitchen as Kitchen Service
+    
+    Note over Order,Kitchen: Szenario 1: Payment Service nicht erreichbar
+    Order->>Payment: POST /pay (Timeout/Error)
+    Payment--xOrder: Connection refused
+    Order->>Order: Freundliche Fehlermeldung
+    Note right of Order: "Payment system is<br/>currently unavailable"
+    
+    Note over Order,Kitchen: Szenario 2: Kitchen Service offline
+    Order->>Payment: POST /pay
+    Payment-->>Order: 200 OK
+    Order->>RabbitMQ: order.placed
+    Note right of RabbitMQ: Nachricht gepuffert
+    Kitchen->>RabbitMQ: Service startet
+    RabbitMQ->>Kitchen: Nachrichten verarbeitet
 ```
 
 ### Verfügbarkeitsmerkmale
