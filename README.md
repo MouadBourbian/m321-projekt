@@ -4,6 +4,15 @@
 
 Dieses Projekt implementiert eine verteilte Plattform für einen Pizza-Lieferdienst mit vier unabhängigen Microservices, die über REST und RabbitMQ kommunizieren. Das System demonstriert moderne Microservice-Patterns wie asynchrone Kommunikation, Resilience und horizontale Skalierung.
 
+## Team & Zuständigkeiten
+
+| Name  | Rolle                                            | Service               |
+| ----- | ------------------------------------------------ | --------------------- |
+| Simon | Einstiegspunkt, Validierung & Event-Publishing   | [Order Service](#)    |
+| Noris | Synchroner Zahlungsabwickler & Fehler-Simulation | [Payment Service](#)  |
+| Fran  | Asynchrone Zubereitung & Skalierung              | [Kitchen Service](#)  |
+| Mouad | Event-Konsumierung & Status-Tracking             | [Delivery Service](#) |
+
 ## Architektur
 
 ```mermaid
