@@ -41,6 +41,10 @@ public class DeliveryService {
         String driverName = DRIVER_NAMES[random.nextInt(DRIVER_NAMES.length)];
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime estimatedDelivery = now.plusMinutes(20 + random.nextInt(20)); // 20-40 minutes
+        
+        // Calculate target transition times upfront
+        int inTransitSeconds = MIN_IN_TRANSIT_TIME + random.nextInt(MAX_IN_TRANSIT_TIME - MIN_IN_TRANSIT_TIME + 1);
+        LocalDateTime targetInTransitTime = now.plusSeconds(inTransitSeconds);
 
         DeliveryStatus status = new DeliveryStatus(
             event.getOrderId(),
@@ -50,6 +54,8 @@ public class DeliveryService {
             now,
             estimatedDelivery,
             null,
+            null,
+            targetInTransitTime,
             null
         );
 
@@ -64,8 +70,8 @@ public class DeliveryService {
     
     /**
      * Scheduled task that runs every 5 seconds to update delivery statuses
-     * - ASSIGNED -> IN_TRANSIT after 10-15 seconds
-     * - IN_TRANSIT -> DELIVERED after 15-25 seconds
+     * - ASSIGNED -> IN_TRANSIT after 10-15 seconds (target time calculated on assignment)
+     * - IN_TRANSIT -> DELIVERED after 15-25 seconds (target time calculated on transition to IN_TRANSIT)
      */
     @Scheduled(fixedRate = 5000)
     public void updateDeliveryStatuses() {
@@ -73,22 +79,21 @@ public class DeliveryService {
         
         deliveries.values().forEach(delivery -> {
             if ("ASSIGNED".equals(delivery.getStatus())) {
-                // Check if enough time has passed to transition to IN_TRANSIT
-                long secondsSinceAssignment = java.time.Duration.between(delivery.getAssignedAt(), now).getSeconds();
-                int transitionTime = MIN_IN_TRANSIT_TIME + random.nextInt(MAX_IN_TRANSIT_TIME - MIN_IN_TRANSIT_TIME + 1);
-                
-                if (secondsSinceAssignment >= transitionTime) {
+                // Check if target time for IN_TRANSIT has been reached
+                if (now.isAfter(delivery.getTargetInTransitTime()) || now.isEqual(delivery.getTargetInTransitTime())) {
                     delivery.setStatus("IN_TRANSIT");
                     delivery.setInTransitAt(now);
+                    
+                    // Calculate target time for delivery
+                    int deliverySeconds = MIN_DELIVERY_TIME + random.nextInt(MAX_DELIVERY_TIME - MIN_DELIVERY_TIME + 1);
+                    delivery.setTargetDeliveredTime(now.plusSeconds(deliverySeconds));
+                    
                     logger.info("Order {} status changed to IN_TRANSIT (driver {} on the way)", 
                         delivery.getOrderId(), delivery.getDriverName());
                 }
-            } else if ("IN_TRANSIT".equals(delivery.getStatus()) && delivery.getInTransitAt() != null) {
-                // Check if enough time has passed to transition to DELIVERED
-                long secondsSinceInTransit = java.time.Duration.between(delivery.getInTransitAt(), now).getSeconds();
-                int deliveryTime = MIN_DELIVERY_TIME + random.nextInt(MAX_DELIVERY_TIME - MIN_DELIVERY_TIME + 1);
-                
-                if (secondsSinceInTransit >= deliveryTime) {
+            } else if ("IN_TRANSIT".equals(delivery.getStatus()) && delivery.getTargetDeliveredTime() != null) {
+                // Check if target time for DELIVERED has been reached
+                if (now.isAfter(delivery.getTargetDeliveredTime()) || now.isEqual(delivery.getTargetDeliveredTime())) {
                     delivery.setStatus("DELIVERED");
                     delivery.setDeliveredAt(now);
                     logger.info("Order {} has been DELIVERED to {} by {}", 

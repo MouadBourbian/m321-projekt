@@ -18,4 +18,6 @@ public class DeliveryStatus {
     private LocalDateTime estimatedDeliveryTime;
     private LocalDateTime deliveredAt;
     private LocalDateTime inTransitAt;
+    private LocalDateTime targetInTransitTime;
+    private LocalDateTime targetDeliveredTime;
 }
